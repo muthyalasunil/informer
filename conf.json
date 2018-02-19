@@ -1,4 +1,7 @@
 {
+	"cascPath": "/home/pi/pycode/haarcascade_frontalface_default.xml",
+	"prototxt": "MobileNetSSD_deploy.prototxt.txt",
+        "model": "MobileNetSSD_deploy.caffemodel",
 	"show_video": false,
 	"store_image": false,
 	"access_token": "YOUR_DROPBOX_KEY",
@@ -9,5 +12,6 @@
 	"delta_thresh": 5,
 	"resolution": [640, 480],
 	"fps": 16,
-	"min_area": 5000
+	"min_area": 5000,
+	"confidence": 0.2
 }
