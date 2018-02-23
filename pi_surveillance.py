@@ -5,11 +5,10 @@
 # import the necessary packages
 import sys
 sys.path.append('pyimagesearch')
+from tempimage import TempImage
+import person_detect
 
 from imutils.video import VideoStream
-import cvcamera
-
-from tempimage import TempImage
 
 import argparse
 import warnings
@@ -39,34 +38,40 @@ print(cascPath)
 faceCascade = cv2.CascadeClassifier(cascPath)
 
 # initialize the camera and grab a reference to the raw camera capture
-vs = VideoStream(usePiCamera=True).start()
+vs = VideoStream(usePiCamera=True, resolution=conf["resolution"], framerate=conf["fps"]).start()
 
 # allow the camera to warmup, then initialize the average frame, last
 # uploaded timestamp, and frame motion counter
 print("[INFO] warming up...")
 time.sleep(conf["camera_warmup_time"])
 
+size = 4
+
 def detectface(image):
 
 	print("[INFO] detecting faces...")
+        # Resize the image to speed up detection
+        image = cv2.resize(image, (image.shape[1] / size, image.shape[0] / size))
 
 	# Read the image
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 	# Detect faces in the image
-	faces = faceCascade.detectMultiScale(gray, 1.3, 5)
+	faces = faceCascade.detectMultiScale(gray, 1.5, 5)
 
 	print("Found {0} faces!".format(len(faces)))
 	if ( len(faces) == 0 ):
 		return None
 
 	# Draw a rectangle around the faces
+        image = cv2.resize(image, (image.shape[1] * size, image.shape[0] * size))
 	for (x, y, w, h) in faces:
     		cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-	t = TempImage()
-	cv2.imwrite(t.path+'.png',image)
-
+      	#Save just the rectangle faces in SubRecFaces
+	sub_face = image[y:(y+h), x:(x+w)]
+       	t = TempImage()	
+	cv2.imwrite(t.path+'.png', sub_face)
 
 
 avg = None
@@ -77,17 +82,14 @@ motionCounter = 0
 while True:
 	
 	# the timestamp and occupied/unoccupied text
-	frame1 = vs.read()
 	oframe = vs.read()
-	frame2 = vs.read()
 
 	timestamp = datetime.datetime.now()
 	text = "Unoccupied"
 
 	# resize the frame, convert it to grayscale, and blur it
-	frame = imutils.resize(oframe, width=500)
-	frame1 = imutils.resize(frame1, width=500)
-	frame2 = imutils.resize(frame2, width=500)
+        image = cv2.resize(oframe, (oframe.shape[1] / 2, oframe.shape[0] / 2))
+	frame = imutils.resize(image, width=500)
 
 	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 	gray = cv2.GaussianBlur(gray, (21, 21), 0)
@@ -144,9 +146,12 @@ while True:
 			if motionCounter >= conf["min_motion_frames"]:
 				
 				print("[INFO] detected motion...")
-                		Thread(detectface(frame)).start()
-                		Thread(detectface(frame1)).start()
-                		Thread(detectface(frame2)).start()
+                		#Thread(detectface(oframe)).start()
+				
+				Thread(person_detect.detect(oframe)).start()		
+				if conf["store_image"]:
+					t = TempImage()
+					cv2.imwrite(t.path,frame)
 
 				lastUploaded = timestamp
 				print("[INFO] done capturing frame...")
