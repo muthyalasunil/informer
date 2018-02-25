@@ -34,8 +34,6 @@ conf = json.load(open(args["conf"]))
 
 cascPath = conf["cascPath"]
 print(cascPath)
-# Create the haar cascade
-faceCascade = cv2.CascadeClassifier(cascPath)
 
 # initialize the camera and grab a reference to the raw camera capture
 vs = VideoStream(usePiCamera=True, resolution=conf["resolution"], framerate=conf["fps"]).start()
@@ -44,35 +42,6 @@ vs = VideoStream(usePiCamera=True, resolution=conf["resolution"], framerate=conf
 # uploaded timestamp, and frame motion counter
 print("[INFO] warming up...")
 time.sleep(conf["camera_warmup_time"])
-
-size = 4
-
-def detectface(image):
-
-	print("[INFO] detecting faces...")
-        # Resize the image to speed up detection
-        image = cv2.resize(image, (image.shape[1] / size, image.shape[0] / size))
-
-	# Read the image
-	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-	# Detect faces in the image
-	faces = faceCascade.detectMultiScale(gray, 1.5, 5)
-
-	print("Found {0} faces!".format(len(faces)))
-	if ( len(faces) == 0 ):
-		return None
-
-	# Draw a rectangle around the faces
-        image = cv2.resize(image, (image.shape[1] * size, image.shape[0] * size))
-	for (x, y, w, h) in faces:
-    		cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-      	#Save just the rectangle faces in SubRecFaces
-	sub_face = image[y:(y+h), x:(x+w)]
-       	t = TempImage()	
-	cv2.imwrite(t.path+'.png', sub_face)
-
 
 avg = None
 lastUploaded = datetime.datetime.now()
@@ -124,7 +93,7 @@ while True:
 		# compute the bounding box for the contour, draw it on the frame,
 		# and update the text
 		(x, y, w, h) = cv2.boundingRect(c)
-		cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+		#cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 		text = "Occupied"
 
 	# draw the text and timestamp on the frame
@@ -145,16 +114,14 @@ while True:
 			# high enough
 			if motionCounter >= conf["min_motion_frames"]:
 				
+				lastUploaded = timestamp
 				print("[INFO] detected motion...")
-                		#Thread(detectface(oframe)).start()
+				Thread(person_detect.detect(conf, oframe)).start()		
 				
-				Thread(person_detect.detect(oframe)).start()		
 				if conf["store_image"]:
 					t = TempImage()
 					cv2.imwrite(t.path,frame)
 
-				lastUploaded = timestamp
-				print("[INFO] done capturing frame...")
 				
 				# counter
 				motionCounter = 0

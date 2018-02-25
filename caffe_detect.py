@@ -75,5 +75,5 @@ def processframe(conf, image):
 		        	#Save just the rectangle faces in SubRecFaces
                 		sub_face = image[startY:endY, startX:endX]
                 		t = TempImage()	
-				cv2.imwrite(t.path(), sub_face)
+				cv2.imwrite(t.path, sub_face)
 
